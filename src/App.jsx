@@ -1,15 +1,6 @@
 import { useState } from "react";
 import "./App.css";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function FinanceCalculator() {
   // These are state variables - they store data that can change
@@ -18,6 +9,9 @@ export default function FinanceCalculator() {
   const [years, setYears] = useState(20);
   const [currency, setCurrency] = useState("EUR");
   const [returnRate, setReturnRate] = useState(7);
+  const [scenarios, setScenarios] = useState([]);
+  const [scenarioName, setScenarioName] = useState('');
+  const [scenarioCount, setScenarioCount] = useState(0);
 
   // This object maps currency codes to their symbols for display
   const currencySymbols = { EUR: "€", USD: "$", RSD: "дин" };
@@ -60,13 +54,48 @@ export default function FinanceCalculator() {
     return data;
   };
 
-  // Call the function with current values and store results
+  // This function saves the current setup as a scenario
+  const addScenario = () => {
+    if (!scenarioName.trim()) return;
+    
+    const finalValue = projection[projection.length - 1].balance;
+    
+    const newScenario = {
+      id: scenarioCount, // Use counter instead of Math.random()
+      name: scenarioName,
+      finalValue: finalValue,
+      monthly: monthlyContribution,
+      rate: returnRate,
+    };
+    
+    setScenarios([...scenarios, newScenario]);
+    setScenarioCount(scenarioCount + 1); // Increment the counter
+    setScenarioName('');
+  };
+
+  // This function removes a scenario by its ID
+  const removeScenario = (id) => {
+    setScenarios(scenarios.filter((s) => s.id !== id));
+  };
+   // Call the function with current values and store results
   const projection = calculateProjection(
     initialAmount,
     monthlyContribution,
     years,
     returnRate,
   );
+
+  // Create data for the bar chart (current + all saved scenarios)
+  const barData = [
+    { name: 'Current', value: projection[projection.length - 1].balance },
+    ...scenarios.map((s) => ({ name: s.name, value: s.finalValue })),
+  ];
+
+
+    
+  
+
+ 
 
   return (
     <div style={{ padding: "2rem", fontFamily: "sans-serif" }}>
@@ -360,6 +389,116 @@ export default function FinanceCalculator() {
           <p><strong>Investment growth:</strong> {symbol}{(projection[projection.length - 1].balance - projection[projection.length - 1].principal).toLocaleString()}</p>
         </div>
       </div>
+
+      {/* SCENARIOS SECTION */}
+      <div style={{ marginTop: '3rem', padding: '1.5rem', backgroundColor: '#f9f9f9', borderRadius: '8px' }}>
+        <h2>Compare scenarios</h2>
+        
+        {/* Input to name a scenario + button to save it */}
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '1.5rem' }}>
+          {/* Text input for scenario name */}
+          <input
+            type="text"
+            placeholder="Name this scenario (e.g., 'Conservative plan')"
+            value={scenarioName}
+            onChange={(e) => setScenarioName(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && addScenario()} // Save on Enter key
+            style={{ 
+              flex: 1, 
+              padding: '0.75rem', 
+              fontSize: '14px',
+              border: '1px solid #ddd',
+              borderRadius: '4px'
+            }}
+          />
+          
+          {/* Button to save the scenario */}
+          <button
+            onClick={addScenario}
+            disabled={!scenarioName.trim()} // Disable if name is empty
+            style={{
+              padding: '0.75rem 1.5rem',
+              backgroundColor: scenarioName.trim() ? '#0F766E' : '#ccc',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              fontWeight: 'bold',
+              cursor: scenarioName.trim() ? 'pointer' : 'not-allowed',
+            }}
+          >
+            Save scenario
+          </button>
+        </div>
+
+        {/* Only show this section if there are saved scenarios */}
+        {scenarios.length > 0 && (
+          <div>
+            {/* List of saved scenarios */}
+            <div style={{ marginBottom: '2rem' }}>
+              <h3>Saved scenarios:</h3>
+              <div style={{ display: 'grid', gap: '10px' }}>
+                {scenarios.map((scenario) => (
+                  <div
+                    key={scenario.id}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '1rem',
+                      backgroundColor: 'white',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px',
+                    }}
+                  >
+                    {/* Scenario info */}
+                    <div>
+                      <div style={{ fontWeight: 'bold', fontSize: '14px' }}>
+                        {scenario.name}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#666' }}>
+                        {symbol}{scenario.finalValue.toLocaleString()} • {scenario.monthly} {currency}/mo • {scenario.rate}%
+                      </div>
+                    </div>
+                    
+                    {/* Delete button */}
+                    <button
+                      onClick={() => removeScenario(scenario.id)}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        backgroundColor: '#ff6b6b',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Bar chart comparing all scenarios */}
+            <div>
+              <h3>Final values comparison</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={barData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis label={{ value: 'Amount', angle: -90, position: 'insideLeft' }} />
+                  <Tooltip formatter={(value) => `${symbol}${Math.round(value).toLocaleString()}`} />
+                  <Bar dataKey="value" fill="#0F766E" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+      </div>
+        
+
+
     </div>
   );
 }
