@@ -1,3 +1,4 @@
+import { calculateProjection } from './utils';
 import { useState } from "react";
 import "./App.css";
 import {
@@ -32,39 +33,7 @@ export default function FinanceCalculator() {
   // This func calculates how much monet you'll have each yeat
   // It takse: starting money, monthly addition, number of years, and expected return rate
 
-  const calculateProjection = (initial, monthly, years, rate) => {
-    // Convert annual return rate to monthly
-    const monthlyRate = rate / 100 / 12;
 
-    // Calculate the total number of months
-    const months = years * 12;
-
-    //  create an empty array to store results
-    const data = [];
-
-    //  Start with the initial amount
-    let balance = initial;
-
-    // Loop through each month from 0 to total months
-    for (let month = 0; month <= months; month++) {
-      // convert month number to years (month 12 = year 1, month 24 = year 2)
-      const year = Math.floor(month / 12);
-
-      // Add this months data to our array
-      data.push({
-        year: parseFloat(year.toFixed(1)), // Round to 1 decimal place
-        balance: Math.round(balance), // Total money you have (rounded)
-        principal: Math.round(initial + monthly * month), //Total money you contributed
-      });
-
-      // If not at the end, calculate next months balance
-      if (month < months) {
-        balance = balance * (1 + monthlyRate) + monthly;
-      }
-    }
-    // return the array of data for each month/year
-    return data;
-  };
 
   // This function saves the current setup as a scenario
   const addScenario = () => {
